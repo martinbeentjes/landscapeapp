@@ -1,5 +1,5 @@
 import Promise from 'bluebird';
-import { setFatalError, reportFatalErrors } from './fatalErrors';
+import { setFatalError, reportFatalErrors, hasFatalErrors } from './fatalErrors';
 import { projectPath, settings } from './settings';
 console.info('processed', projectPath);
 const source = require('js-yaml').safeLoad(require('fs').readFileSync(`${projectPath}/processed_landscape.yml`));
@@ -540,6 +540,16 @@ async function main () {
     item.isSubsidiaryProject = isSubsidiaryProject;
   });
 
+  itemsWithExtraFields.forEach(item => {
+    const { project, crunchbase, crunchbaseData, name } = item
+    if (project && crunchbase !== settings.global.self && !crunchbaseData.parents.includes(settings.global.self)) {
+      failOnMultipleErrors(`Project ${name} has been added to ${project} category but does not belong to ${settings.global.short_name}`);
+    }
+  })
+
+  if (hasFatalErrors()) {
+    process.exit(1);
+  }
 
   const extractOptions = function(name) {
     return _.chain(itemsWithExtraFields).map(function(x) {
